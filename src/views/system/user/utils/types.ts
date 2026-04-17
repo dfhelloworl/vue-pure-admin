@@ -16,6 +16,7 @@ interface FormItemProps {
     name?: string;
   };
   remark: string;
+  tags: string[];
 }
 interface FormProps {
   formInline: FormItemProps;

@@ -24,7 +24,8 @@ export default defineFakeRoute([
             name: "研发部门"
           },
           remark: "管理员",
-          createTime: 1605456000000
+          createTime: 1605456000000,
+          tags: ["管理员", "VIP", "核心成员"]
         },
         {
           avatar: "https://avatars.githubusercontent.com/u/52823142",
@@ -40,7 +41,8 @@ export default defineFakeRoute([
             name: "测试部门"
           },
           remark: "普通用户",
-          createTime: 1605456000000
+          createTime: 1605456000000,
+          tags: ["普通用户", "测试人员"]
         }
       ];
       list = list.filter(item => item.username.includes(body?.username));
