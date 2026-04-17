@@ -144,7 +144,7 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
       prop: "tags",
       minWidth: 150,
       cellRenderer: ({ row, props }) => (
-        <div class="flex flex-wrap gap-1">
+        <div class="flex-c flex-wrap   gap-1">
           {row.tags?.map((tag: string) => (
             <el-tag
               key={tag}
