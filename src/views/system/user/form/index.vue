@@ -1,9 +1,26 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import ReCol from "@/components/ReCol";
 import { formRules } from "../utils/rule";
 import { FormProps } from "../utils/types";
 import { usePublicHooks } from "../../hooks";
+
+const tagColors = ["primary", "success", "warning", "danger", "info"];
+
+const tagColorMap = new Map<string, string>();
+
+function getTagColor(tag: string): string {
+  if (tagColorMap.has(tag)) {
+    return tagColorMap.get(tag)!;
+  }
+  const hash = tag.split("").reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc);
+  }, 0);
+  const colorIndex = Math.abs(hash) % tagColors.length;
+  const color = tagColors[colorIndex];
+  tagColorMap.set(tag, color);
+  return color;
+}
 
 const props = withDefaults(defineProps<FormProps>(), {
   formInline: () => ({
@@ -17,7 +34,8 @@ const props = withDefaults(defineProps<FormProps>(), {
     email: "",
     sex: "",
     status: 1,
-    remark: ""
+    remark: "",
+    tags: []
   })
 });
 
@@ -34,6 +52,22 @@ const sexOptions = [
 const ruleFormRef = ref();
 const { switchStyle } = usePublicHooks();
 const newFormInline = ref(props.formInline);
+const tagInputValue = ref("");
+
+function handleAddTag() {
+  const value = tagInputValue.value.trim();
+  if (value && !newFormInline.value.tags.includes(value)) {
+    newFormInline.value.tags.push(value);
+    tagInputValue.value = "";
+  }
+}
+
+function handleRemoveTag(tag: string) {
+  const index = newFormInline.value.tags.indexOf(tag);
+  if (index > -1) {
+    newFormInline.value.tags.splice(index, 1);
+  }
+}
 
 function getRef() {
   return ruleFormRef.value;
@@ -117,6 +151,31 @@ defineExpose({ getRef });
               :value="item.value"
             />
           </el-select>
+        </el-form-item>
+      </re-col>
+
+      <re-col :value="12" :xs="24" :sm="24">
+        <el-form-item label="标签">
+          <el-input
+            v-model="tagInputValue"
+            placeholder="请输入标签，按回车添加"
+            clearable
+            class="mb-2"
+            @keyup.enter="handleAddTag"
+          />
+          <div class="flex flex-wrap gap-1">
+            <el-tag
+              v-for="tag in newFormInline.tags"
+              :key="tag"
+              :type="getTagColor(tag) as any"
+              effect="plain"
+              closable
+              class="mr-1 mb-1"
+              @close="handleRemoveTag(tag)"
+            >
+              {{ tag }}
+            </el-tag>
+          </div>
         </el-form-item>
       </re-col>
 

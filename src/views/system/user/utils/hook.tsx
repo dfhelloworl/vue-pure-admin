@@ -41,6 +41,23 @@ import {
   onMounted
 } from "vue";
 
+const tagColors = ["primary", "success", "warning", "danger", "info"];
+
+const tagColorMap = new Map<string, string>();
+
+function getTagColor(tag: string): string {
+  if (tagColorMap.has(tag)) {
+    return tagColorMap.get(tag)!;
+  }
+  const hash = tag.split("").reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc);
+  }, 0);
+  const colorIndex = Math.abs(hash) % tagColors.length;
+  const color = tagColors[colorIndex];
+  tagColorMap.set(tag, color);
+  return color;
+}
+
 export function useUser(tableRef: Ref, treeRef: Ref) {
   const form = reactive({
     // 左侧部门树的id
@@ -121,6 +138,26 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
       label: "部门",
       prop: "dept.name",
       minWidth: 90
+    },
+    {
+      label: "标签",
+      prop: "tags",
+      minWidth: 150,
+      cellRenderer: ({ row, props }) => (
+        <div class="flex flex-wrap gap-1">
+          {row.tags?.map((tag: string) => (
+            <el-tag
+              key={tag}
+              size={props.size}
+              type={getTagColor(tag) as any}
+              effect="plain"
+              class="mr-1 mb-1"
+            >
+              {tag}
+            </el-tag>
+          ))}
+        </div>
+      )
     },
     {
       label: "手机号码",
@@ -325,7 +362,8 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
           email: row?.email ?? "",
           sex: row?.sex ?? "",
           status: row?.status ?? 1,
-          remark: row?.remark ?? ""
+          remark: row?.remark ?? "",
+          tags: row?.tags ?? []
         }
       },
       width: "46%",
