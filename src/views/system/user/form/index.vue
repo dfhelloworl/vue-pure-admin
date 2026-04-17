@@ -52,17 +52,12 @@ const sexOptions = [
 const ruleFormRef = ref();
 const { switchStyle } = usePublicHooks();
 const newFormInline = ref(props.formInline);
-const tagInputValue = ref("");
 
-function handleAddTag() {
-  const value = tagInputValue.value.trim();
-  if (value && !newFormInline.value.tags.includes(value)) {
-    newFormInline.value.tags.push(value);
-    tagInputValue.value = "";
-  }
+function handleTagChange(tags: string[]) {
+  newFormInline.value.tags = tags;
 }
 
-function handleRemoveTag(tag: string) {
+function handleTagRemove(tag: string) {
   const index = newFormInline.value.tags.indexOf(tag);
   if (index > -1) {
     newFormInline.value.tags.splice(index, 1);
@@ -156,26 +151,28 @@ defineExpose({ getRef });
 
       <re-col :value="12" :xs="24" :sm="24">
         <el-form-item label="标签">
-          <el-input
-            v-model="tagInputValue"
+          <el-select
+            v-model="newFormInline.tags"
+            multiple
+            filterable
+            allow-create
+            default-first-option
             placeholder="请输入标签，按回车添加"
-            clearable
-            class="mb-2"
-            @keyup.enter="handleAddTag"
-          />
-          <div class="flex flex-wrap gap-1">
-            <el-tag
-              v-for="tag in newFormInline.tags"
-              :key="tag"
-              :type="getTagColor(tag) as any"
-              effect="plain"
-              closable
-              class="mr-1 mb-1"
-              @close="handleRemoveTag(tag)"
-            >
-              {{ tag }}
-            </el-tag>
-          </div>
+            class="w-full"
+            @change="handleTagChange"
+          >
+            <template #tag="{ item }">
+              <el-tag
+                :type="getTagColor(item.value) as any"
+                effect="plain"
+                closable
+                class="mr-1"
+                @close="handleTagRemove(item.value)"
+              >
+                {{ item.label }}
+              </el-tag>
+            </template>
+          </el-select>
         </el-form-item>
       </re-col>
 
