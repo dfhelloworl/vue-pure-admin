@@ -53,17 +53,6 @@ const ruleFormRef = ref();
 const { switchStyle } = usePublicHooks();
 const newFormInline = ref(props.formInline);
 
-function handleTagChange(tags: string[]) {
-  newFormInline.value.tags = tags;
-}
-
-function handleTagRemove(tag: string) {
-  const index = newFormInline.value.tags.indexOf(tag);
-  if (index > -1) {
-    newFormInline.value.tags.splice(index, 1);
-  }
-}
-
 function getRef() {
   return ruleFormRef.value;
 }
@@ -159,20 +148,7 @@ defineExpose({ getRef });
             default-first-option
             placeholder="请输入标签，按回车添加"
             class="w-full"
-            @change="handleTagChange"
-          >
-            <template #tag="{ item }">
-              <el-tag
-                :type="getTagColor(item.value) as any"
-                effect="plain"
-                closable
-                class="mr-1"
-                @close="handleTagRemove(item.value)"
-              >
-                {{ item.label }}
-              </el-tag>
-            </template>
-          </el-select>
+          />
         </el-form-item>
       </re-col>
 
