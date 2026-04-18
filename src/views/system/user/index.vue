@@ -46,7 +46,11 @@ const {
   handleSizeChange,
   onSelectionCancel,
   handleCurrentChange,
-  handleSelectionChange
+  handleSelectionChange,
+  handleImportBeforeUpload,
+  handleImportSuccess,
+  handleImportError,
+  handleExport
 } = useUser(tableRef, treeRef);
 </script>
 
@@ -122,6 +126,20 @@ const {
             @click="openDialog()"
           >
             新增用户
+          </el-button>
+          <el-upload
+            :show-file-list="false"
+            :before-upload="handleImportBeforeUpload"
+            :on-success="handleImportSuccess"
+            :on-error="handleImportError"
+            accept=".xlsx,.xls"
+          >
+            <el-button :icon="useRenderIcon('ri:upload-2-line')">
+              批量导入 Excel
+            </el-button>
+          </el-upload>
+          <el-button :icon="useRenderIcon('ri:download-2-line')" @click="handleExport">
+            导出 Excel
           </el-button>
         </template>
         <template v-slot="{ size, dynamicColumns }">
