@@ -593,9 +593,39 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
       setTimeout(async () => {
         try {
           if (successRows.length > 0) {
-            // 这里可以调用实际的导入接口
+            // 为新导入的数据生成唯一的 id
+            let maxId = 0;
+            if (dataList.value.length > 0) {
+              maxId = Math.max(...dataList.value.map(item => item.id));
+            }
+            
+            // 将 Excel 中的数据映射到 dataList 的结构
+            const newUsers = successRows.map((row, index) => {
+              return {
+                id: maxId + index + 1,
+                username: row["用户名称"],
+                nickname: row["用户昵称"],
+                phone: String(row["手机号码"]),
+                sex: row["性别"] === "女" ? 1 : 0,
+                status: row["状态"] === "已停用" ? 0 : 1,
+                dept: {
+                  id: row["部门ID"] || 103,
+                  name: row["部门"] || "研发部门"
+                },
+                avatar: row["头像"] || "",
+                email: row["邮箱"] || "",
+                remark: row["备注"] || "",
+                createTime: Date.now()
+              };
+            });
+            
+            // 将新数据添加到 dataList 中
+            dataList.value = [...dataList.value, ...newUsers];
+            
+            // 更新 pagination.total
+            pagination.total = dataList.value.length;
+            
             message(`成功导入 ${successRows.length} 条数据`, { type: "success" });
-            onSearch(); // 刷新列表
           }
 
           if (failedRows.length > 0) {
