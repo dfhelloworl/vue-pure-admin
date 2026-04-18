@@ -540,6 +540,7 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
 
       const failedRows: { row: number; error: string; data: any }[] = [];
       const successRows: any[] = [];
+      const addedKeys = new Set<string>();
 
       jsonData.forEach((row, index) => {
         const rowNumber = index + 2; // 实际 Excel 行号（表头是第 1 行）
@@ -585,6 +586,34 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
           return;
         }
 
+        // 去重检查：用户名+用户昵称联合去重
+        const key = `${row["用户名称"]}|${row["用户昵称"]}`;
+        
+        // 检查是否与 Excel 中前面已验证通过的数据重复
+        if (addedKeys.has(key)) {
+          failedRows.push({
+            row: rowNumber,
+            error: "数据重复（用户名称+用户昵称组合已在当前 Excel 文件中存在）",
+            data: row
+          });
+          return;
+        }
+        
+        // 检查是否与 dataList 中已存在的数据重复
+        const isDuplicate = dataList.value.some(
+          item => item.username === row["用户名称"] && item.nickname === row["用户昵称"]
+        );
+        
+        if (isDuplicate) {
+          failedRows.push({
+            row: rowNumber,
+            error: "数据重复（用户名称+用户昵称组合已在系统中存在）",
+            data: row
+          });
+          return;
+        }
+
+        addedKeys.add(key);
         successRows.push(row);
       });
 
