@@ -512,26 +512,24 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
     roleOptions.value = (await getAllRoleList()).data ?? [];
   });
 
-  /** 批量导入 Excel - 上传前验证 */
-  function handleImportBeforeUpload(file: File) {
+  /** 批量导入 Excel - 文件选择处理 */
+  function handleImportChange(uploadFile: any) {
+    const file = uploadFile.raw;
+    if (!file) {
+      message("无法获取上传的文件", { type: "error" });
+      return;
+    }
+
+    // 验证文件格式
     const isExcel = file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || 
                     file.type === "application/vnd.ms-excel" ||
                     file.name.endsWith(".xlsx") || 
                     file.name.endsWith(".xls");
     if (!isExcel) {
       message("请上传 Excel 文件（.xlsx 或 .xls 格式）", { type: "error" });
-      return false;
-    }
-    return true;
-  }
-
-  /** 批量导入 Excel - 上传成功处理 */
-  function handleImportSuccess(_response: any, uploadFile: any) {
-    const file = uploadFile.raw;
-    if (!file) {
-      message("无法获取上传的文件", { type: "error" });
       return;
     }
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       const data = e.target?.result;
@@ -625,11 +623,6 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
     reader.readAsBinaryString(file);
   }
 
-  /** 批量导入 Excel - 上传错误处理 */
-  function handleImportError() {
-    message("文件上传失败，请稍后重试", { type: "error" });
-  }
-
   /** 导出 Excel */
   function handleExport() {
     loading.value = true;
@@ -703,9 +696,7 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
     onSelectionCancel,
     handleCurrentChange,
     handleSelectionChange,
-    handleImportBeforeUpload,
-    handleImportSuccess,
-    handleImportError,
+    handleImportChange,
     handleExport
   };
 }

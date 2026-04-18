@@ -47,9 +47,7 @@ const {
   onSelectionCancel,
   handleCurrentChange,
   handleSelectionChange,
-  handleImportBeforeUpload,
-  handleImportSuccess,
-  handleImportError,
+  handleImportChange,
   handleExport
 } = useUser(tableRef, treeRef);
 </script>
@@ -129,9 +127,8 @@ const {
           </el-button>
           <el-upload
             :show-file-list="false"
-            :before-upload="handleImportBeforeUpload"
-            :on-success="handleImportSuccess"
-            :on-error="handleImportError"
+            :auto-upload="false"
+            :on-change="handleImportChange"
             accept=".xlsx,.xls"
           >
             <el-button :icon="useRenderIcon('ri:upload-2-line')">
