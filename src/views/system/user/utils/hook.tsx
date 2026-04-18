@@ -1,5 +1,6 @@
 import "./reset.css";
 import dayjs from "dayjs";
+import * as XLSX from "xlsx";
 import roleForm from "../form/role.vue";
 import editForm from "../form/index.vue";
 import { zxcvbn } from "@zxcvbn-ts/core";
@@ -511,6 +512,172 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
     roleOptions.value = (await getAllRoleList()).data ?? [];
   });
 
+  /** 批量导入 Excel - 上传前验证 */
+  function handleImportBeforeUpload(file: File) {
+    const isExcel = file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || 
+                    file.type === "application/vnd.ms-excel" ||
+                    file.name.endsWith(".xlsx") || 
+                    file.name.endsWith(".xls");
+    if (!isExcel) {
+      message("请上传 Excel 文件（.xlsx 或 .xls 格式）", { type: "error" });
+      return false;
+    }
+    return true;
+  }
+
+  /** 批量导入 Excel - 上传成功处理 */
+  function handleImportSuccess(_response: any, uploadFile: any) {
+    const file = uploadFile.raw;
+    if (!file) {
+      message("无法获取上传的文件", { type: "error" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: "binary" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      const failedRows: { row: number; error: string; data: any }[] = [];
+      const successRows: any[] = [];
+
+      jsonData.forEach((row, index) => {
+        const rowNumber = index + 2; // 实际 Excel 行号（表头是第 1 行）
+        
+        // 验证必填字段
+        if (!row["用户名称"] || !row["用户昵称"] || !row["手机号码"]) {
+          failedRows.push({
+            row: rowNumber,
+            error: "必填字段缺失（用户名称、用户昵称、手机号码为必填项）",
+            data: row
+          });
+          return;
+        }
+
+        // 验证手机号格式
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        if (!phoneRegex.test(String(row["手机号码"]))) {
+          failedRows.push({
+            row: rowNumber,
+            error: "手机号码格式不正确",
+            data: row
+          });
+          return;
+        }
+
+        // 验证性别（如果有）
+        if (row["性别"] !== undefined && row["性别"] !== "男" && row["性别"] !== "女") {
+          failedRows.push({
+            row: rowNumber,
+            error: "性别只能是“男”或“女”",
+            data: row
+          });
+          return;
+        }
+
+        // 验证状态（如果有）
+        if (row["状态"] !== undefined && row["状态"] !== "已启用" && row["状态"] !== "已停用") {
+          failedRows.push({
+            row: rowNumber,
+            error: "状态只能是“已启用”或“已停用”",
+            data: row
+          });
+          return;
+        }
+
+        successRows.push(row);
+      });
+
+      // 模拟导入接口调用（延迟 500ms）
+      loading.value = true;
+      setTimeout(async () => {
+        try {
+          if (successRows.length > 0) {
+            // 这里可以调用实际的导入接口
+            message(`成功导入 ${successRows.length} 条数据`, { type: "success" });
+            onSearch(); // 刷新列表
+          }
+
+          if (failedRows.length > 0) {
+            // 弹窗显示失败行
+            const errorMessage = failedRows.map(item => 
+              `第 ${item.row} 行：${item.error}（用户名称：${item.data["用户名称"] || "无"}）`
+            ).join("\n");
+            
+            ElMessageBox.alert(
+              `导入完成，但有 ${failedRows.length} 行数据导入失败：\n\n${errorMessage}`,
+              "导入结果",
+              {
+                confirmButtonText: "确定",
+                type: "warning"
+              }
+            );
+          }
+        } catch (error) {
+          message("导入失败，请稍后重试", { type: "error" });
+        } finally {
+          loading.value = false;
+        }
+      }, 500);
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  /** 批量导入 Excel - 上传错误处理 */
+  function handleImportError() {
+    message("文件上传失败，请稍后重试", { type: "error" });
+  }
+
+  /** 导出 Excel */
+  function handleExport() {
+    loading.value = true;
+    
+    // 模拟接口延迟 500ms
+    setTimeout(() => {
+      try {
+        // 只导出当前筛选后的列表（dataList）
+        const exportData = dataList.value.map(row => ({
+          "用户编号": row.id,
+          "用户名称": row.username,
+          "用户昵称": row.nickname,
+          "性别": row.sex === 1 ? "女" : "男",
+          "部门": row.dept?.name || "",
+          "手机号码": row.phone,
+          "状态": row.status === 1 ? "已启用" : "已停用",
+          "创建时间": dayjs(row.createTime).format("YYYY-MM-DD HH:mm:ss")
+        }));
+
+        // 创建工作簿
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "用户列表");
+
+        // 设置列宽
+        const wscols = [
+          { wch: 12 }, // 用户编号
+          { wch: 15 }, // 用户名称
+          { wch: 15 }, // 用户昵称
+          { wch: 8 },  // 性别
+          { wch: 15 }, // 部门
+          { wch: 15 }, // 手机号码
+          { wch: 10 }, // 状态
+          { wch: 20 }  // 创建时间
+        ];
+        worksheet["!cols"] = wscols;
+
+        // 导出文件
+        XLSX.writeFile(workbook, `用户列表_${dayjs().format("YYYYMMDDHHmmss")}.xlsx`);
+        message(`成功导出 ${exportData.length} 条数据`, { type: "success" });
+      } catch (error) {
+        message("导出失败，请稍后重试", { type: "error" });
+      } finally {
+        loading.value = false;
+      }
+    }, 500);
+  }
+
   return {
     form,
     loading,
@@ -535,6 +702,10 @@ export function useUser(tableRef: Ref, treeRef: Ref) {
     handleSizeChange,
     onSelectionCancel,
     handleCurrentChange,
-    handleSelectionChange
+    handleSelectionChange,
+    handleImportBeforeUpload,
+    handleImportSuccess,
+    handleImportError,
+    handleExport
   };
 }
